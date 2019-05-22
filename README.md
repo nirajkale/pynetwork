@@ -117,7 +117,7 @@ def get_usage_percentage(request_id:int, **kwargs):
     '''
     total, used, free = shutil.disk_usage("\\")
     usage_per = used/ total
-    bk.safe_print('usage', usage_per)
+    bk.safe_print('usage', usage_per) # safe_print make sure that output from multiple client/handler threads to console do not mix-up
     b = struct.pack('f', usage_per)    #convert the data bytes that needs to be sent back
     return b
 
