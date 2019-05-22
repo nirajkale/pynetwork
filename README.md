@@ -1,5 +1,11 @@
   # pynet
   ##  High performance socket swarms for network workloads
+  
+  ### Prelude
+ 
+  As a fun project, i wanted a raspberry pi based RC car that can be controlled over wi-fi. On the receiver end, a combination of  different deep neural network architectures that can consume the data from raspberry pi like camera feed ( to a CNN model), feed from various sensors e.g proximity, speed encoder etc ( to a RNN) & then can subsequently control it.
+  But one of the fundamental problems that i faced while implementing it was how to transfer all of this data back & forth between my laptop & pi in real time with low latency.
+  This gave me an idea write a simple JSON based networking code that could transfer custom python objects back & forth, but that was enough because i was dealing multiple data feeds & manging these multiple tcp connections was getting difficult & hence i decided to buckle up and write down a networking library that could manage swarm of connections & also could help stream the data from python subroutines (These subroutines were pythonian generators that could endlessly read & stream the individual sensor data). Apart from subroutines based streaming, I also wanted to add batch fashioned suboutine data transfer (As you may have realized lot of these ideas sound similar to Keras generators that are used for feeding data to a machine learning model) 
 
   pynet package is designed to help write scripts/projects that rely on interprocess communication over a network. Using pynet, this 
   inter-network IPC can be achieved using minimal-to-no knowledge of sockets. Furthermore these data transfer/steaming can be done in 
@@ -22,8 +28,8 @@
   & client. Each handler spwned at the Gateway runs on a independent python-thread (this where the performance boost comes from)These       handler are managed by Gateway. The number of possible Handlers<->Clients that can be spawned depends the size of Handler 
   pool (Basically a custom thread pool). By default the pool size is 5 but you can increase it any number depending on your hardware.
   
-**The swarm architecture looks something like this**
-<img src="https://user-images.githubusercontent.com/40765055/58163266-53432900-7ca1-11e9-8c94-928eb364faf7.jpg" /></p>
+  **The swarm architecture looks something like this**
+  <img src="https://user-images.githubusercontent.com/40765055/58163266-53432900-7ca1-11e9-8c94-928eb364faf7.jpg" /></p>
 
 
 Below are some of the use case tutorials using pynet with increasing complexity:
