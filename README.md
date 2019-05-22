@@ -48,11 +48,22 @@
   
   3. Send batch of data to handler subroutine
   
-        You can also send data to a subroutine whcih is registered with Gateway. This is data is available as buffer parameter in your           function's ****kwargs** input.
+        You can also send data to a subroutine whcih is registered with Gateway. This is data is available as parameter called 
+        **buffer** in your function's ** **kwargs** input. This is additional byte input, apart from the usual arguments & kwargs that           you can pass to your subroutine. After the execution of subroutine, handler expects an integer return that is transferred back           to the client as an output.
   
   4. Download files from Gateway to client device (from folder name & regex or fullpath to files)
+  
+        No need of description here apart from the fact that, you can speed up file transfer by distributing the load across multiple           connections. One important thing to note here is that, the speed improvement would be negligible if the files are less numerous         & large in size in which case your bandwidth would the limiting factor. but in case of numerous small files, you might see a             conisderable improvement.
+        (So swarm could be perticaularly useful if you are transferring log files from you application where file count is usually high         & size of each log is limted to few hundered MBs)
+        ****I would soon upload few stats to support above argument
+  
   5. Send files to Gateway (files are downloaded to relative said folder)
+  
+       Same as above, except the direction is opposite.
+      
   6. Ping Handler to check the connection
+  
+      Could be useful to test the connection.
 
   Below are some of the use case tutorials using pynet with increasing complexity:<br/>
   ##Conditional File Backup
