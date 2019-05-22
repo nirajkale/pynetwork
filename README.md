@@ -73,9 +73,9 @@
   Consider a scenario where you have a limited storage on a VM node or a server and would like to to move older files from this device
   to your local machine when the storage usage crosses 20% (starting from the older files). This objective can be achieve as below:
   
-  **On Gateway side : **
+  #### On Gateway side
   ```python
-  import pynet
+import pynet
 import pynet.backend2 as bk
 import struct
 import shutil
@@ -105,12 +105,12 @@ if __name__ == '__main__':
     gw.add_subroutine('remove_logs', remove_logs)
     #add above two subroutines with a key, that client can pass to request execution
     gw.start(blocking = True) #start listening to controller
-    
-  ```
+```
   
-  **On Controller side: **
-    ```python
-    import pynet
+  #### On Controller side
+  
+  ```python
+import pynet
 import pynet.backend2 as bk
 import struct
 
@@ -131,4 +131,7 @@ if __name__ == '__main__':
         pass
     client1.close_handler() #close handler so the handler pool at gateway will remain empty for others
     #additionally you can also stop Gatway by: client1.close_gateway()
-    ```
+
+```
+
+
