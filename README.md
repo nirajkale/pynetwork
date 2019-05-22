@@ -29,7 +29,7 @@
   & client. Each handler spwned at the Gateway runs on a independent python-thread (this where the performance boost comes from)These     handler are managed by Gateway. The number of possible Handlers<->Clients that can be spawned depends the size of Handler 
   pool (Basically a custom thread pool). By default the pool size is 5 but you can increase it any number depending on your hardware.
   
-  **The swarm architecture looks something like this**
+  **The swarm architecture looks something like this** <br/>
   <img src="https://user-images.githubusercontent.com/40765055/58163266-53432900-7ca1-11e9-8c94-928eb364faf7.jpg" /></p>
 
   #### Handler <--> Client
@@ -54,8 +54,8 @@
   4. Download files from Gateway to client device (from folder name & regex or fullpath to files)
   
         No need of description here apart from the fact that, you can speed up file transfer by distributing the load across multiple           connections. One important thing to note here is that, the speed improvement would be negligible if the files are less numerous         & large in size in which case your bandwidth would the limiting factor. but in case of numerous small files, you might see a             conisderable improvement.
-        (So swarm could be perticaularly useful if you are transferring log files from you application where file count is usually high         & size of each log is limted to few hundered MBs)
-        ****I would soon upload few stats to support above argument
+        (So swarm could be perticaularly useful if you are transferring log files from you application where file count is usually high         & size of each log is limted to few hundered MBs)<br/>
+        <i>I would soon upload few stats to support above argument</i>
   
   5. Send files to Gateway (files are downloaded to relative said folder)
   
@@ -64,11 +64,71 @@
   6. Ping Handler to check the connection
   
       Could be useful to test the connection.
+  
+  Below are some of the use case tutorials using pynet with increasing complexity: 
 
-  Below are some of the use case tutorials using pynet with increasing complexity:<br/>
-  ##Conditional File Backup
+
+  ## Conditional File Backup
   
   Consider a scenario where you have a limited storage on a VM node or a server and would like to to move older files from this device
-  to your local machine when the storage usage crosses 75%, also you want to move just enough files to reduce usage to 25% (starting       from the older files). This objective can be achieve 
+  to your local machine when the storage usage crosses 20% (starting from the older files). This objective can be achieve as below:
   
-</info>
+  **On Gateway side : **
+  ```python
+  import pynet
+import pynet.backend2 as bk
+import struct
+import shutil
+import os
+
+def get_usage_percentage(request_id:int, **kwargs):
+    '''
+    Logic to calculate mount/overall hdd usage
+    '''
+    total, used, free = shutil.disk_usage("\\")
+    usage_per = used/ total
+    bk.safe_print('usage', usage_per)
+    b = struct.pack('f', usage_per)    #convert the data bytes that needs to be sent back
+    return b
+
+def remove_logs(dirpath:str, **kwargs):
+    files = [os.path.join(dirpath,f) for f in os.listdir(dirpath)]
+    for f in files: #iterate over files delete each one
+        os.remove(f)
+    bk.safe_print(len(files),' files deleted')
+    return bk.int_to_bytes(len(files)) 
+
+if __name__ == '__main__':
+
+    gw = pynet.Gateway(1857) #start gateway at port 1857
+    gw.add_subroutine('mount_usage', get_usage_percentage)
+    gw.add_subroutine('remove_logs', remove_logs)
+    #add above two subroutines with a key, that client can pass to request execution
+    gw.start(blocking = True) #start listening to controller
+    
+  ```
+  
+  **On Controller side: **
+    ```python
+    import pynet
+import pynet.backend2 as bk
+import struct
+
+if __name__ == '__main__':
+
+    controller = pynet.Controller(gateway_ip = '', port = 1857, download_dir = 'mydir', verbose = True) 
+    client1 = controller.get_client()
+    client1.ping('Hello there..')
+    b = client1.get_subroutine_batch(name ='mount_usage',arguments=[123,])
+    usage = struct.unpack('f', b)[0]
+    bk.safe_print('mount usage:', usage)
+    if usage > 0.2:
+        bk.safe_print('downloading files..')
+        client1.get_files_from_gateway(folder = 'D:\logs', regex = '.+RFIN703235761L')
+        count_bytes = client1.get_subroutine_batch(name ='remove_logs',arguments=['D:\logs',])
+        bk.safe_print(bk.bytes_to_int(count_bytes),' files deleted') 
+    else:
+        pass
+    client1.close_handler() #close handler so the handler pool at gateway will remain empty for others
+    #additionally you can also stop Gatway by: client1.close_gateway()
+    ```
