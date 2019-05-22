@@ -13,17 +13,20 @@ Following objectives can be achieved using this package:
 </ul>
 <br/>
 <p>
-Before jumping on to some use cases, below is some nomenclatures & components that you should be aware before using it:
-There are 4 main components involved namely: Gateway, Controller, Handler & a Client. Gateway acts as a small server which listens
-to requests made by Controller on a specified port. Gateway & Controller share a Many-to-Many relationship (One Gateway can respond
-to multiple Controllers & one Controller can connect to multiple Gateways). Gateway-controller themselves do perform any workload
-operation (like data/file transfer) but instead they are responsible spawning & managing a swarm\s of tcp connections to handle 
-your workloads. </p><p>Whenever a controller requests to a Gateway, Gateway spawns a Handler & sends an acknowledge to the Controller
-then Controller creates a Client for that Handler. So 1 request results in spawning of a pair of "Handler <-> Client". A handler &
-a client work in tandem to handle your custom workload. To improve speed of your operation, you can spawn multiple pairs of Handler
-& client. Each handler spwned at the Gateway runs on a independent python-thread <b>(this where the performance boost comes from)<b/>These handler are managed by Gateway. The number of possible Handlers<->Clients that can be spawned depends the size of Handler 
-pool (Basically a custom thread pool). By default the pool size is 5 but you can increase it any number depending on your hardware.</p>
-  <p></p>
+  Before jumping on to some use cases, below is some nomenclatures & components that you should be aware before using it:
+  There are 4 main components involved namely: Gateway, Controller, Handler & a Client. Gateway acts as a small server which listens
+  to requests made by Controller on a specified port. Gateway & Controller share a Many-to-Many relationship (One Gateway can respond
+  to multiple Controllers & one Controller can connect to multiple Gateways). Gateway-controller themselves do perform any workload
+  operation (like data/file transfer) but instead they are responsible spawning & managing a swarm\s of tcp connections to handle 
+  your workloads. </p><p>Whenever a controller requests to a Gateway, Gateway spawns a Handler & sends an acknowledge to the Controller
+  then Controller creates a Client for that Handler. So 1 request results in spawning of a pair of "Handler <-> Client". A handler &
+  a client work in tandem to handle your custom workload. To improve speed of your operation, you can spawn multiple pairs of Handler
+  & client. Each handler spwned at the Gateway runs on a independent python-thread <b>(this where the performance boost comes from)<b/>These handler are managed by Gateway. The number of possible Handlers<->Clients that can be spawned depends the size of Handler 
+  pool (Basically a custom thread pool). By default the pool size is 5 but you can increase it any number depending on your hardware.</b>
+</p>
+<p>
+
+</p>
 <ul>
   <li>
     <b>Gateway</b><br/>
