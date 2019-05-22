@@ -12,4 +12,31 @@ Following objectives can be achieved using this package:
 <li>Send files to & from server using swarm of connections for higher transfer rates</li>
 </ul>
 <br/>
-Below are some use case tutorials using pynet:
+<p>
+Before jumping on to some use cases, below is some nomenclatures & components that you should be aware before using it:
+There are 4 main components involved namely: Gateway, Controller, Handler & a Client. Gateway acts as a small server which listens
+to requests made by Controller on a specified port. Gateway & Controller share a Many-to-Many relationship (One Gateway can respond
+to multiple Controllers & one Controller can connect to multiple Gateways). Gateway-controller themselves do perform any workload
+operation (like data/file transfer) but instead they are responsible spawning & managing a swarm\s of tcp connections to handle 
+your workloads. </p><p>Whenever a controller requests to a Gateway, Gateway spawns a Handler & sends an acknowledge to the Controller
+then Controller creates a Client for that Handler. So 1 request results in spawning of a pair of "Handler <-> Client". A handler &
+a client work in tandem to handle your custom workload. To improve speed of your operation, you can spawn multiple pairs of Handler
+& client. Each handler spwned at the Gateway runs on a independent python-thread <b>(this where the performance boost comes from)<b/>These handler are managed by Gateway. The number of possible Handlers<->Clients that can be spawned depends the size of Handler 
+pool (Basically a custom thread pool). By default the pool size is 5 but you can increase it any number depending on your hardware.</p>
+  <p></p>
+<ul>
+  <li>
+    <b>Gateway</b><br/>
+    Gateway listens to incoming 
+  </li>
+  <li></li>
+</ul>
+
+Below are some of the use case tutorials using pynet with increasing complexity:
+<br/>
+<h2> Conditional File Backup </h2>
+<info>
+  Consider a scenario where you have a limited storage on a VM node or a server and would like to to move older files from this device
+  to your local machine when the storage usage crosses 75%, also you want to move just enough files to reduce usage to 25% (starting from 
+  the older files). This objective 
+</info>
