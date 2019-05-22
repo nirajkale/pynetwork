@@ -19,10 +19,12 @@ def stream_from_subroutine(socket,name,function, arguments, kwargs):
                 bk.receive_ack(socket)
                 ident, buffer = next(generator)
             bk.send_eos(socket)
-            bk.safe_print('stream has ended by ident')
         except StopIteration as e_si:
             bk.safe_print('StopIteration from subroutine')
             bk.send_eos(socket)
+        except bk.RemoteException as re:
+            bk.safe_print('Streaming aborted by client')
+            return
         except Exception as e_gen:
             bk.safe_print('Error in subroutine execution')
             bk.send_header(socket, Response(False, str(e_gen)))
@@ -34,8 +36,8 @@ def stream_from_subroutine(socket,name,function, arguments, kwargs):
 
 def batch_from_subroutine(socket,name,function, arguments, kwargs):
     try:  
-        bk.safe_print('calling function', name)
-        bk.safe_print('arguments:',arguments, kwargs)
+##        bk.safe_print('calling function', name)
+##        bk.safe_print('arguments:',arguments, kwargs)
         payload = function(*arguments, **kwargs)
         bk.send_raw_bytes(socket, payload)
         bk.receive_ack(socket)
@@ -51,11 +53,16 @@ def receive_subroutine_stream(socket, subroutine_name, callback, eos_callback):
     transmitter & receiver
     '''
     try:
+        result = None
         data_type, payload = bk.receive_data(socket)
         while data_type==1:
+            if result!= None and result.__class__ is bool and result==False:
+                bk.safe_print('Stream reception abort requested by callback')
+                bk.send_header(socket, Response(False, 'Subroutine stream reception aborted by client'))
+                return
             bk.send_ack(socket)
             ident, buffer = bk.bytes_to_int(payload[:8]), payload[8:]
-            callback(subroutine_name, ident, buffer)
+            result = callback(subroutine_name, ident, buffer)
             data_type, payload = bk.receive_data(socket)
         if data_type == 3: #eos
             bk.safe_print('stream eos reached, raising eos_callback')

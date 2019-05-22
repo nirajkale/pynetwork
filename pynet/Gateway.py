@@ -57,10 +57,9 @@ class Gateway:
         bk.safe_print('Gateway stopped')
 
     def callback_handler(self, handler_id, flag_gateway):
-        bk.safe_print('callback received from handler ',handler_id, 'flag:', flag_gateway)            
         del self.handler_pool[ handler_id]
         if not flag_gateway:
-            bk.safe_print('stopping gateway..')
+            bk.safe_print('Gatway termination requested by a handler <- client')
             self.stop()
 
     def callback_listener(self, client):
@@ -99,7 +98,7 @@ class Handler(threading.Thread):
         self.exit_callback = exit_callback
         self.id = Handler.handler_count
         Handler.handler_count +=1
-        bk.safe_print('handler thread with id ',self.id,' constructed')
+        #bk.safe_print('handler thread with id ',self.id,' constructed')
         self.exitflag = False
         self.flag_gateway = True
         self.download_dir = download_dir
@@ -185,11 +184,11 @@ class Handler(threading.Thread):
     def run(self):
         try:
             #first thing that a Handler oughtta do is acknowledge client
-            bk.safe_print('handler with id ',self.id,' is running, acknowledging client')
+            bk.safe_print('handler with id ',self.id,' has started')
             bk.send_int(self.client, 200)
             while not self.exitflag:
                 header = bk.receive_header(self.client)
-                bk.safe_print('request to ',self.id,' ',str(header))
+                #bk.safe_print('request to ',self.id,' ',str(header))
                 if header.__class__ is SendFiles:
                     self.send_files_to_client(header)
                     #backend has its own implementation of resp
@@ -219,17 +218,16 @@ class Handler(threading.Thread):
                 else:
                     bk.safe_print('request to '+self.id+' Invalid header')
                     bk.send_header(self.client, Response(False, 'Invalide Header'))
-            bk.safe_print('Handler ',self.id,' is exiting')
         except Exception as e:
             bk.safe_print('Error in handler ', str(e))
         finally:
             try:
-                bk.safe_print('disposeing handler socket')
+                #bk.safe_print('disposeing handler socket')
                 try_dispose_client( self.client)
                 self.exit_callback(self.id, self.flag_gateway)
             except Exception as e1:
                 bk.safe_print('Error in gateway callback:',str(e1))
-        bk.safe_print('Handler closed')
+        bk.safe_print('Handler with id',self.id,'closed')
 
 
     def request_closure(self):

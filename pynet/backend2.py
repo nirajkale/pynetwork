@@ -59,7 +59,7 @@ def de_serialize_obj(string):
     obj.__dict__ = json.loads(string[string.index(':')+1:])
     return obj
 
-def receive_data(client, chunk_size = default_chunk_size):
+def receive_data(client, expect_disposal = False, chunk_size = default_chunk_size):
     '''
         returns (type , buffer)
     '''
@@ -78,7 +78,9 @@ def receive_data(client, chunk_size = default_chunk_size):
             header = de_serialize_obj( bytes_to_str(buffer))
             if header.__class__ is Response and (not header.result):
                 #intercept & raise Exception
-                raise Exception('Backend:'+header.message)
+                raise RemoteException('Backend:'+header.message)
+            elif header.__class__ is DisposeRequest and (not expect_disposal):
+                raise Exception('Received unexpected disposal requet')
             return (data_type, header)
         return (data_type, buffer)
     else:
@@ -154,7 +156,7 @@ def send_header(client, header):
               buffer = buffer)
 
 def receive_header(client):
-    data_type, obj= receive_data(client)
+    data_type, obj= receive_data(client, expect_disposal = True)
     if data_type ==2:
         return obj
     raise Exception('Out of Sync response, Was expecting a header but a got a data_type:'+str(data_type))
@@ -253,6 +255,11 @@ class Listener(threading.Thread):
         temp_client = get_socket()
         temp_client.connect((self.ip, self.port))
         temp_client.send(b'')
+
+class RemoteException(Exception):
+    
+    def __init__(self, message):
+        super().__init__(message)
 
 
 def callback(client):
