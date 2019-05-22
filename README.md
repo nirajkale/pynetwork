@@ -31,7 +31,9 @@
   & client. Each handler spwned at the Gateway runs on a independent python-thread (this where the performance boost comes from)These     handler are managed by Gateway. The number of possible Handlers<->Clients that can be spawned depends the size of Handler 
   pool (Basically a custom thread pool). By default the pool size is 5 but you can increase it any number depending on your hardware.
   
-  **The swarm architecture looks something like this** <br/>
+  **The swarm architecture looks something like this** 
+  
+  
   <img src="https://user-images.githubusercontent.com/40765055/58163266-53432900-7ca1-11e9-8c94-928eb364faf7.jpg" /></p>
 
   #### Handler <--> Client
