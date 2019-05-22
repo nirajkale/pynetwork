@@ -1,9 +1,11 @@
   # pynet
   ##  High performance socket swarms for network workloads
   
-  ### Prelude <br/>
+  ### Prelude
   
   As a fun project, i wanted a raspberry pi based RC car that can be controlled over wi-fi. On the receiver end, a combination of         different deep neural network architectures that can consume the data from raspberry pi like camera feed ( to a CNN model), feed from   various sensors e.g proximity, speed encoder etc ( to a RNN) & then can subsequently control it. But one of the fundamental problems     that i faced while implementing it was how to transfer all of this data back & forth between my laptop & pi in real time with low       latency. This gave me an idea write a simple JSON based networking code that could transfer custom python objects back & forth, but     that was enough because i was dealing multiple data feeds & manging these multiple tcp connections was getting difficult & hence i       decided to buckle up and write down a networking library that could manage swarm of connections & also could help stream the data from   python subroutines (These subroutines were pythonian generators that could endlessly read & stream the individual sensor data). Apart   from subroutines based streaming, I also wanted to add batch fashioned suboutine data transfer (As you may have realized lot of these   ideas sound similar to Keras generators that are used for feeding data to a machine learning model ). After a month of after-office     coding & testing, I am finally releasing v2 of pynet. This is latest verison is not only suitable for IOT but can also be used for any   network workload like conditional file backups, executing subroutines over network or streaming custom data without the need of         polling.
+  
+  ### Abstract
 
   pynet package is designed to help write scripts/projects that rely on interprocess communication over a network. Using pynet, this 
   inter-network IPC can be achieved using minimal-to-no knowledge of sockets. Furthermore these data transfer/steaming can be done in 
@@ -41,10 +43,11 @@
         Examples of such streaming could be:
         a. Streaming multiple sensor data
         b. Streaming key-presses to a key-logger over the network
+        The data which is streamed from a generator is of byte array type data, along with this byte array data, function also needs to         return an "id" (or idetity). This id can be perticualy useful when your using a swarm of connections to stream the data, because         if the same function is being used my multiple handlers then there is no gaurantee of the same order in which the data was               returned by the function would be preserved on the received end. In this case, you can use this id to re-arrange your data if           needed.
         
   2. Receive data batch from a handler subroutine
     
-        If you need the data on transactional basis without the need of steams, you can opt for batch subroutines. These are simple             python function (which doesn't need to be written as a generator) that return byte data (with unique id for that batch), then           handler would steam this data across to client with that same id. This id can be perticualy useful when your using a swarm of           connection, because if the same function is used my multiple handlers then there is no gaurantee order in which the data was             returned by the function would be preserved on the received end. In this case, you can use this id to re-arrange your data.
+        If you need the data on transactional basis without the need of steams, you can opt for batch subroutines. These are simple             python function (which doesn't need to be written as a generator) that return byte data (with unique id for that batch), then           handler would steam this data across to client.
   
   3. Send batch of data to handler subroutine
   
@@ -68,7 +71,7 @@
   Below are some of the use case tutorials using pynet with increasing complexity: 
 
 
-  ## Conditional File Backup
+  ## Tutorial 1: Conditional File Backup that uses batch data transfer
   
   Consider a scenario where you have a limited storage on a VM node or a server and would like to to move older files from this device
   to your local machine when the storage usage crosses 20% (starting from the older files). This objective can be achieve as below:
@@ -133,5 +136,26 @@ if __name__ == '__main__':
     #additionally you can also stop Gatway by: client1.close_gateway()
 
 ```
+  Additionaly, you can also add logic in 'remove_logs' function to remove files before a specific date & so on. Since you can integrate   any custom logic in your python subroutine, the possibilities are endless.
+  
+  #### Few things to be considered while writing a subroutine for receiving batch data (Handler -> Client):
+  
+  a. Function can have *arguments* & *kwargs* as an input, here arguments represent positional arguments (Against the usual python            convetion)
+     *sorry for this mess, i will change the name in next release*
+  b. The function need to return the data in byte format. So function can either one of the methoeds available in backed to convert int,      str to byes (I would add support float soon, but meanwhile you can use struct package). Furthermore, if you want to return a custom      class then you use your own custom encode to serialize object to JSON string & then using backed to convert this string to bytes,        then on the controller side do the opposite.
+     **If you want to use the object serialization which available in backend then you can add your class to the "Handshakes file" to        use in-built serializtion, but it is important that you have primitive data-types in your class & have default values assigned to
+     all the input parameters in __init__ method of your class.**
+     *I will make some change in serialization to give more freedom for class defination in next release*
+     
+  #### Few things to be considered while writing a subroutine for transmitting batch data (Client -> Handler):
+  
+  a. Function can have *arguments* & *kwargs* as an input, here arguments represent positional arguments (Against the usual python            convetion)
+     *sorry for this mess, i will change the name in next release*
+  b. The function need to return the integer result in byte format which will be beamed back to client as a result
+     
+  
+## Tutorial 2: Raspberry-Pi control over wifi (uses both streaming & batch data transfer)
+
+  *Work in progress.. Will post in 1-2 days!*
 
 
