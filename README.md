@@ -155,7 +155,7 @@ if __name__ == '__main__':
     if usage > 0.2:
         bk.safe_print('downloading files..')
         client1.get_files_from_gateway(folder = 'D:\logs', regex = '.+RFIN703235761L') #using regex, u can filter files within a folder
-        #in this case, we only downloading log file belonging to tensorflow as a test
+        #in this case, we are only downloading log file belonging to tensorflow as a test
         count_bytes = client1.get_subroutine_batch(name ='remove_logs',arguments=['D:\logs',])
         bk.safe_print(bk.bytes_to_int(count_bytes),' files deleted') 
     else:
