@@ -98,11 +98,13 @@ def forward_batch_to_subroutine(socket, function, arguments, kwargs):
     try:
         data_type, payload = bk.receive_data(socket)
         if data_type==1:
-            if not arguments:
-                kwargs ={}
-            kwargs['buffer'] = payload
+            if payload:
+                kwargs['buffer'] = payload
             result = function(*arguments, **kwargs)
-            bk.send_int(socket,[result if result.__class__ is int else 0][0])
+            if result != None and result.__class__ is int:
+                bk.send_int(socket, result)
+            else:
+                bk.send_int(socket, 0)
         if data_type == 3: #eos
             raise Exception('Server was not expecting a EOS while sending data to subroutine.')
         elif data_type == 2:# header in the middle of the stream means an error in generator execution

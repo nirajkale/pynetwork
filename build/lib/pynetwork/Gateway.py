@@ -38,6 +38,7 @@ class Gateway:
         self.handler_pool = {}
         self.subroutines = {}
         self.download_dir = download_dir
+        self.is_running = False
         if self.download_dir=='':
             self.download_dir = 'Downloads'
             if not os.path.exists(self.download_dir):
@@ -45,6 +46,7 @@ class Gateway:
 
     def start(self, blocking = False):
         self.listener = bk.Listener(self.callback_listener , self.port)
+        self.is_running = True
         self.listener.start()
         if blocking:
             self.listener.join()
@@ -54,6 +56,7 @@ class Gateway:
         self.listener.join()
         for handler_id in self.handler_pool:
             self.handler_pool[ handler_id].request_closure()
+        self.is_running = False
         bk.safe_print('Gateway stopped')
 
     def callback_handler(self, handler_id, flag_gateway):

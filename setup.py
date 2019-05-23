@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pynetwork",
-    version="2.0.1",
+    version="2.0.3",
     author="Niraj S. Kale",
     author_email="nirajkale157@outlook.com",
     description="package to manage connection swarms for your network workloads",

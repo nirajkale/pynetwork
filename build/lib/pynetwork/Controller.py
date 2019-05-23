@@ -18,8 +18,8 @@ class Controller:
         self.download_dir = download_dir
         if self.download_dir=='':
             self.download_dir = 'Downloads'
-            if not os.path.exists(self.download_dir):
-                os.makedirs(self.download_dir)
+        if not os.path.exists(self.download_dir):
+            os.makedirs(self.download_dir)
         self.port = port
         self.gateway_ip = gateway_ip
         if self.gateway_ip =='' and platform.os.name =='nt':
