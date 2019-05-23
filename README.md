@@ -75,6 +75,21 @@
         returned by the function would be preserved on the received end. In this case, you can use this id to re-arrange your data if 
         needed.
         
+        Steps to follow to use this functionality:
+        a. write a python 'generator' function that yeilds byte array data
+           The return signature expected from this function is a 'python set' with 2 elements '(ident, buffer)'
+           where ident is an integer which represents an index for this chunk from your steam & buffer is an byte array (which is data
+           to be streamed).
+        b. you can use any of the byte conversion methods from backend2 module of the package. You can convert int, str, or JSON str,
+           or objects (with default valued constructor) to byte array
+        c. The streaming will terminate when the generator raises an 'StopIteration' error or ident<0 or buffer is 'None'
+        d. you can also terminate streaming from client side by returning 'False' in your streaming callback (User requested stream
+           abort)
+        e. If streaming ends (without User requested stream abort) then client calls 'eos_callback'
+        f. You can also pass positional arguments & kwargs to this generator when you start the stream. 
+           (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
+           with same params)           
+        
   2. Receive data batch from a handler subroutine
     
         If you need the data on transactional basis without the need of steams, you can opt for batch subroutines. These are simple 
@@ -84,9 +99,17 @@
   3. Send batch of data to handler subroutine
   
         You can also send data to a subroutine whcih is registered with Gateway. This data is available as parameter called 
-        **buffer** in your function's **kwargs** input. This is additional byte arrya input, apart from the usual arguments & kwargs 
+        **buffer** in your function's **kwargs** input. This is additional byte array input, apart from the usual arguments & kwargs 
         that you can pass to your subroutine. After the execution of subroutine, handler expects an integer return that is transferred
         back to the client as an output.
+        
+        Steps to follow to use this functionality:
+        
+        a. Write a function (with whatever positional/ kwargs you want) & regirster it with gateway
+        b. package expects that this function would return an int which is then beamed back to client
+        f. You can also pass positional arguments & kwargs to this generator when you start the stream. 
+           (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
+           with same params)  
   
   4. Download files from Gateway to client device (from folder name & regex or fullpath to files)
   
@@ -115,8 +138,8 @@
   
   #### On Gateway side
   ```python
-import pynet
-import pynet.backend2 as bk
+import pynetwork as pynet
+import pynetwork.backend2 as bk
 import struct
 import shutil
 import os
@@ -150,8 +173,8 @@ if __name__ == '__main__':
   #### On Controller side
   
   ```python
-import pynet
-import pynet.backend2 as bk
+import pynetwork as pynet
+import pynetwork.backend2 as bk
 import struct
 
 if __name__ == '__main__':
