@@ -76,19 +76,25 @@
         needed.
         
         Steps to follow to use this functionality:
+        
         a. write a python 'generator' function that yeilds byte array data
            The return signature expected from this function is a 'python set' with 2 elements '(ident, buffer)'
            where ident is an integer which represents an index for this chunk from your steam & buffer is an byte array (which is data
            to be streamed).
+           
         b. you can use any of the byte conversion methods from backend2 module of the package. You can convert int, str, or JSON str,
            or objects (with default valued constructor) to byte array
+           
         c. The streaming will terminate when the generator raises an 'StopIteration' error or ident<0 or buffer is 'None'
         d. you can also terminate streaming from client side by returning 'False' in your streaming callback (User requested stream
            abort)
+           
         e. If streaming ends (without User requested stream abort) then client calls 'eos_callback'
+        
         f. You can also pass positional arguments & kwargs to this generator when you start the stream. 
            (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
-           with same params)           
+           with same params)
+           
         
   2. Receive data batch from a handler subroutine
     
@@ -106,10 +112,13 @@
         Steps to follow to use this functionality:
         
         a. Write a function (with whatever positional/ kwargs you want) & regirster it with gateway
+        
         b. package expects that this function would return an int which is then beamed back to client
+        
         f. You can also pass positional arguments & kwargs to this generator when you start the stream. 
            (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
-           with same params)  
+           with same params)
+           
   
   4. Download files from Gateway to client device (from folder name & regex or fullpath to files)
   
