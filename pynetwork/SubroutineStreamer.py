@@ -98,7 +98,6 @@ def forward_batch_to_subroutine(socket, function, arguments, kwargs):
     try:
         data_type, payload = bk.receive_data(socket)
         if data_type==1:
-            print('payload', payload)
             if payload != b'':
                 kwargs['buffer'] = payload
             result = function(*arguments, **kwargs)
