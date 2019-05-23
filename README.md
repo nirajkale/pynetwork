@@ -3,7 +3,7 @@
   
   ### Important Updates:
   
-  Due to some name conflict in pypi, i had to change the name the library from "pynet" to "pynetwork"
+  Due to some name conflict in pypi, i had to change the name of the library from "pynet" to "pynetwork"
   
   ### Abstract
 
