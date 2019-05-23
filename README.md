@@ -82,19 +82,19 @@
            where ident is an integer which represents an index for this chunk from your steam & buffer is an byte array (which is data
            to be streamed).
 
-            ```python
-            import pynetwork.backend2 as bk
+  ```python
+  import pynetwork.backend2 as bk
 
-            def your_function_name(arg1, arg2,.., **kwargs): #parameters are optional
-              index =1
-              while condition:
-                pass
-                obj = your_logic_to_generate_data() #lets your data is a custom python obj
-                #if its an object, then you can use your own custom json encode/decoder
-                obj_str = your_json_encoder( obj)
-                yield (index, bk.str_to_bytes(obj_to_str))
-              return result #return your integer result 
-            ```
+  def your_function_name(arg1, arg2,.., **kwargs): #parameters are optional
+    index =1
+    while condition:
+      pass
+      obj = your_logic_to_generate_data() #lets your data is a custom python obj
+      #if its an object, then you can use your own custom json encode/decoder
+      obj_str = your_json_encoder( obj)
+      yield (index, bk.str_to_bytes(obj_to_str))
+    return result #return your integer result 
+  ```
 
         b. you can use any of the byte conversion methods from backend2 module of the package. You can convert int, str, or JSON str,
            or objects (with default valued constructor) to byte array
@@ -130,12 +130,12 @@
 
         b. Since gateway passes an 'buffer' paramater through kwargs dictionary, this method needs to strictly follow below signatue:
 
-          ```python
-          def your_function_name(arg1, arg2,.., **kwargs):
-            result = 2
-            pass
-            return result #return your integer result
-          ```
+  ```python
+  def your_function_name(arg1, arg2,.., **kwargs):
+    result = 2
+    pass
+    return result #return your integer result
+  ```
 
 
         c. You can also pass positional arguments & kwargs to this generator when you start the stream. 
