@@ -3,18 +3,18 @@ from pynetwork import *
 if __name__ == '__main__':
 
     try:
-        gateway_ip = '192.168.0.105'
-        controller = Controller(gateway_ip = gateway_ip, port = 443)
+        gateway_ip = '' #package will automatically replace '' with localhost for windows
+        controller = Controller(gateway_ip = gateway_ip, port = 1857)
         client1 = controller.get_client()
         bk.safe_print('pinging handler')
         client1.ping()
-        d = r'C:\Users\703235761\Documents\License'
+        
+        d = r''
+##        bk.safe_print('\n\nDownloading files form gateway..')
+##        client1.get_files_from_gateway(folder = d)
 
-        bk.safe_print('\n\nDownloading files form gateway..')
-        client1.get_files_from_gateway(folder = d)
-
-        bk.safe_print('\n\nUploading files to gateway..')
-        client1.send_files_to_gateway(dirname='test', files = [os.path.join(d,f) for f in os.listdir('Pictures')])
+##        bk.safe_print('\n\nUploading files to gateway..')
+##        client1.send_files_to_gateway(dirname='test', files = [os.path.join(d,f) for f in os.listdir('Pictures')])
         
         bk.safe_print('\n\nTest for receiving subroutine streaming..')
         client1.get_subroutine_stream(name='str_sensor',\
