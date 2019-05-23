@@ -1,5 +1,24 @@
-  # pynet
+  # pynetwork
   ##  High performance socket swarms for network workloads
+  
+  ### Important Updates:
+  
+  Due to some name conflict in pypi, i had to change the name the library from "pynet" to "pynetwork"
+  
+  ### Abstract
+
+  pynet package is designed to help write scripts/projects that rely on interprocess communication over a network with minimal-to-no       knowledge of sockets. Furthermore these data transfer/steaming can be done in a swarm fashion, meaning multiple or swarm of persitant   tcp connections that serve a single objective to deliver high performance.
+  Following objectives can be achieved using this package:
+
+  1. Write subroutines/functions that can stream data over to your client using callbacks (No need of polling)
+  2. Write subroutines/functions that can send batches of data over to your client
+  3. Send data to your subroutines/function over network
+  4. Send files to & from server using swarm of connections for higher transfer rates
+  
+  ### Installation
+  
+  I've added this package to pypi package index,so now you can install it using pip:
+  pip install pynetwork
   
   ### Prelude
   
@@ -13,18 +32,8 @@
   connections & also could help stream the data from python subroutines (These subroutines were pythonian generators that could
   endlessly read & stream the individual sensor data). Apart from subroutines based streaming, I also wanted to add batch fashioned
   suboutine data transfer (As you may have realized lot of these ideas sound similar to Keras generators that are used for feeding data
-  to a machine learning model ). After a month of after-office coding & testing, I am finally releasing v2 of pynet. This version should
+  to a machine learning model ). After a month of after-office coding & testing, I am finally releasing v2 of pynetwork. This version should
   not only be suitable for IOT but can be used for any network workload.
-  
-  ### Abstract
-
-  pynet package is designed to help write scripts/projects that rely on interprocess communication over a network with minimal-to-no       knowledge of sockets. Furthermore these data transfer/steaming can be done in a swarm fashion, meaning multiple or swarm of persitant   tcp connections that serve a single objective to deliver high performance.
-  Following objectives can be achieved using this package:
-
-  1. Write subroutines/functions that can stream data over to your client using callbacks (No need of polling)
-  2. Write subroutines/functions that can send batches of data over to your client
-  3. Send data to your subroutines/function over network
-  4. Send files to & from server using swarm of connections for higher transfer rates
 
   ### Before jumping on to some use cases, below is some nomenclatures & components that you should be aware before using it:
   
