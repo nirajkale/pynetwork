@@ -125,15 +125,14 @@
         **Steps to follow to use this functionality:**
         
   a. Write a function (with whatever positional/ kwargs you want) & regirster it with gateway
-     package expects that this function would return an int which is then beamed back to client
-
-  b. Since gateway passes an 'buffer' paramater through kwargs dictionary, this method needs to strictly follow below signatue:
+     package expects that this function would return an int which is then beamed back to client, however this int return is 
+     optiional. In case if you dont return anything, on the client side your script will receive 0.
 
   ```python
   def your_function_name(arg1, arg2,.., **kwargs):
     result = 2
     pass
-    return result #return your integer result
+    return result #return your integer result if required
   ```
   
   c. You can also pass positional arguments & kwargs to this generator when you start the stream. 
