@@ -210,6 +210,7 @@ class Handler(threading.Thread):
                     else:
                         bk.send_header(self.client, Response(False, 'Invalid Subroutine configuration provided to gateway.')) 
                 elif header.__class__ is PingRequest:
+                    bk.safe_print('Ping request:',header.message)
                     self.send_positive_resp(message = header.message)
                 elif header.__class__ is DisposeRequest:
                     if header.mode in (0,1):

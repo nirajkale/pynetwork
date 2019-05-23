@@ -243,10 +243,10 @@ class Listener(threading.Thread):
         while not self.flag_stop_listening:
             self.socket = get_socket()
             self.socket.bind((self.ip,self.port))
-            safe_print('Listener binded to port ',self.port)
+            #safe_print('Listener binded to port ',self.port)
             self.socket.listen(5)
             client, address = self.socket.accept()
-            safe_print('Listener received request from ',address)
+            safe_print('Received request from ',address)
             if not self.flag_stop_listening:
                 self.client_callback(client)
         

@@ -98,7 +98,8 @@ def forward_batch_to_subroutine(socket, function, arguments, kwargs):
     try:
         data_type, payload = bk.receive_data(socket)
         if data_type==1:
-            if payload:
+            print('payload', payload)
+            if payload != b'':
                 kwargs['buffer'] = payload
             result = function(*arguments, **kwargs)
             if result != None and result.__class__ is int:
@@ -120,7 +121,7 @@ def forward_batch_to_subroutine(socket, function, arguments, kwargs):
 def send_batch_to_subroutine(socket, buffer):
 
     if not buffer:
-        buffer = bk.int_to_bytes(0)
+        buffer = b''
     bk.send_raw_bytes(socket, buffer)
     return bk.receive_int(socket)
     

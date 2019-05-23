@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pynetwork
-Version: 2.0.3
+Version: 2.1
 Summary: package to manage connection swarms for your network workloads
 Home-page: https://github.com/nirajkale/pynet
 Author: Niraj S. Kale
