@@ -17,7 +17,8 @@
   
   ### Installation
   
-  I've added this package to pypi package index,so now you can install it using pip:
+  I've added this package to pypi package index,so now you can install it using pip: <br/>
+  
   pip install pynetwork
   
   ### Prelude
