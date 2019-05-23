@@ -93,21 +93,20 @@
       #if its an object, then you can use your own custom json encode/decoder
       obj_str = your_json_encoder( obj)
       yield (index, bk.str_to_bytes(obj_to_str))
-    return result #return your integer result 
   ```
+  
+  b. you can use any of the byte conversion methods from backend2 module of the package. You can convert int, str, or JSON str,
+     or objects (with default valued constructor) to byte array
 
-        b. you can use any of the byte conversion methods from backend2 module of the package. You can convert int, str, or JSON str,
-           or objects (with default valued constructor) to byte array
+  c. The streaming will terminate when the generator raises an 'StopIteration' error or ident<0 or buffer is 'None'
+  d. you can also terminate streaming from client side by returning 'False' in your streaming callback (User requested stream
+     abort)
 
-        c. The streaming will terminate when the generator raises an 'StopIteration' error or ident<0 or buffer is 'None'
-        d. you can also terminate streaming from client side by returning 'False' in your streaming callback (User requested stream
-           abort)
+  e. If streaming ends (without User requested stream abort) then client calls 'eos_callback'
 
-        e. If streaming ends (without User requested stream abort) then client calls 'eos_callback'
-
-        f. You can also pass positional arguments & kwargs to this generator when you start the stream. 
-           (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
-           with same params)
+  f. You can also pass positional arguments & kwargs to this generator when you start the stream. 
+     (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
+     with same params)
            
         
   2. Receive data batch from a handler subroutine
@@ -136,11 +135,10 @@
     pass
     return result #return your integer result
   ```
-
-
-        c. You can also pass positional arguments & kwargs to this generator when you start the stream. 
-           (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
-           with same params)
+  
+  c. You can also pass positional arguments & kwargs to this generator when you start the stream. 
+     (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
+     with same params)
            
   
   4. Download files from Gateway to client device (from folder name & regex or fullpath to files)
