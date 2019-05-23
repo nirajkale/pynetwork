@@ -1,5 +1,25 @@
-  # pynet
+  # pynetwork
   ##  High performance socket swarms for network workloads
+  
+  ### Important Updates:
+  
+  Due to some name conflict in pypi, i had to change the name of the library from "pynet" to "pynetwork"
+  
+  ### Abstract
+
+  pynet package is designed to help write scripts/projects that rely on interprocess communication over a network with minimal-to-no       knowledge of sockets. Furthermore these data transfer/steaming can be done in a swarm fashion, meaning multiple or swarm of persitant   tcp connections that serve a single objective to deliver high performance.
+  Following objectives can be achieved using this package:
+
+  1. Write subroutines/functions that can stream data over to your client using callbacks (No need of polling)
+  2. Write subroutines/functions that can send batches of data over to your client
+  3. Send data to your subroutines/function over network
+  4. Send files to & from server using swarm of connections for higher transfer rates
+  
+  ### Installation
+  
+  I've added this package to pypi package index,so now you can install it using pip: <br/>
+  
+  pip install pynetwork
   
   ### Prelude
   
@@ -13,18 +33,8 @@
   connections & also could help stream the data from python subroutines (These subroutines were pythonian generators that could
   endlessly read & stream the individual sensor data). Apart from subroutines based streaming, I also wanted to add batch fashioned
   suboutine data transfer (As you may have realized lot of these ideas sound similar to Keras generators that are used for feeding data
-  to a machine learning model ). After a month of after-office coding & testing, I am finally releasing v2 of pynet. This version should
+  to a machine learning model ). After a month of after-office coding & testing, I am finally releasing v2 of pynetwork. This version should
   not only be suitable for IOT but can be used for any network workload.
-  
-  ### Abstract
-
-  pynet package is designed to help write scripts/projects that rely on interprocess communication over a network with minimal-to-no       knowledge of sockets. Furthermore these data transfer/steaming can be done in a swarm fashion, meaning multiple or swarm of persitant   tcp connections that serve a single objective to deliver high performance.
-  Following objectives can be achieved using this package:
-
-  1. Write subroutines/functions that can stream data over to your client using callbacks (No need of polling)
-  2. Write subroutines/functions that can send batches of data over to your client
-  3. Send data to your subroutines/function over network
-  4. Send files to & from server using swarm of connections for higher transfer rates
 
   ### Before jumping on to some use cases, below is some nomenclatures & components that you should be aware before using it:
   
@@ -51,7 +61,7 @@
   
   An individual pair of handler-client offer various options of data transfers:
   
-  1. Receive data stream from a handler subroutine
+  1. **Receive data stream from a handler subroutine**
   
         You can write python generator function that endlessly yield data (byte array) and register/add them to Gateway. Once added to
         Gateway, these subroutines are passed to any newly spawned handler. A client can then ask handler to stream data from this
@@ -65,20 +75,73 @@
         returned by the function would be preserved on the received end. In this case, you can use this id to re-arrange your data if 
         needed.
         
-  2. Receive data batch from a handler subroutine
+        **Steps to follow to use this functionality:**
+        
+  a. write a python 'generator' function that yeilds byte array data
+     The return signature expected from this function is a 'python set' with 2 elements '(ident, buffer)'
+     where ident is an integer which represents an index for this chunk from your steam & buffer is an byte array (which is data
+     to be streamed).
+
+  ```python
+  import pynetwork.backend2 as bk
+
+  def your_function_name(arg1, arg2,.., **kwargs): #parameters are optional
+    index =1
+    while condition:
+      pass
+      obj = your_logic_to_generate_data() #lets your data is a custom python obj
+      #if its an object, then you can use your own custom json encode/decoder
+      obj_str = your_json_encoder( obj)
+      yield (index, bk.str_to_bytes(obj_to_str))
+  ```
+  
+  b. you can use any of the byte conversion methods from backend2 module of the package. You can convert int, str, or JSON str,
+     or objects (with default valued constructor) to byte array
+
+  c. The streaming will terminate when the generator raises an 'StopIteration' error or ident<0 or buffer is 'None'
+  d. you can also terminate streaming from client side by returning 'False' in your streaming callback (User requested stream
+     abort)
+
+  e. If streaming ends (without User requested stream abort) then client calls 'eos_callback'
+
+  f. You can also pass positional arguments & kwargs to this generator when you start the stream. 
+     (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
+     with same params)
+           
+        
+  2. **Receive data batch from a handler subroutine**
     
         If you need the data on transactional basis without the need of steams, you can opt for batch subroutines. These are simple 
         python function (which doesn't need to be written as a generator) that return byte data (with unique id for that batch), then 
         handler would steam this data across to client.
   
-  3. Send batch of data to handler subroutine
+  3. **Send batch of data to handler subroutine**
   
         You can also send data to a subroutine whcih is registered with Gateway. This data is available as parameter called 
-        **buffer** in your function's **kwargs** input. This is additional byte arrya input, apart from the usual arguments & kwargs 
+        **buffer** in your function's **kwargs** input. This is additional byte array input, apart from the usual arguments & kwargs 
         that you can pass to your subroutine. After the execution of subroutine, handler expects an integer return that is transferred
         back to the client as an output.
+        
+        **Steps to follow to use this functionality:**
+        
+  a. Write a function (with whatever positional/ kwargs you want) & regirster it with gateway
+     package expects that this function would return an int which is then beamed back to client
+
+  b. Since gateway passes an 'buffer' paramater through kwargs dictionary, this method needs to strictly follow below signatue:
+
+  ```python
+  def your_function_name(arg1, arg2,.., **kwargs):
+    result = 2
+    pass
+    return result #return your integer result
+  ```
   
-  4. Download files from Gateway to client device (from folder name & regex or fullpath to files)
+  c. You can also pass positional arguments & kwargs to this generator when you start the stream. 
+     (Package serializes your args & kwargs and then these params get deserialized at gateway where the function is executed 
+     with same params)
+           
+  
+  4. **Download files from Gateway to client device (from folder name & regex or fullpath to files)**
   
         No need of description here apart from the fact that, you can speed up file transfer by distributing the load across multiple 
         connections. One important thing to note here is that, the speed improvement would be negligible if the files are less numerous 
@@ -87,11 +150,11 @@
         application where file count is usually high & size of each log is limted to few hundered MBs)
         *I would soon upload few stats to support above argument*
   
-  5. Send files to Gateway (files are downloaded to relative said folder)
+  5. **Send files to Gateway (files are downloaded to relative said folder)**
   
        Same as above, except the direction is opposite.
       
-  6. Ping Handler to check the connection
+  6. **Ping Handler to check the connection**
   
       Could be useful to test the connection.
   
@@ -105,8 +168,8 @@
   
   #### On Gateway side
   ```python
-import pynet
-import pynet.backend2 as bk
+import pynetwork as pynet
+import pynetwork.backend2 as bk
 import struct
 import shutil
 import os
@@ -140,8 +203,8 @@ if __name__ == '__main__':
   #### On Controller side
   
   ```python
-import pynet
-import pynet.backend2 as bk
+import pynetwork as pynet
+import pynetwork.backend2 as bk
 import struct
 
 if __name__ == '__main__':
