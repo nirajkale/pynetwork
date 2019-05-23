@@ -1,10 +1,10 @@
-from pynet import *
+from pynetwork import *
 
 if __name__ == '__main__':
 
     try:
         gateway_ip = '192.168.0.105'
-        controller = Controller(gateway_ip = gateway_ip)
+        controller = Controller(gateway_ip = gateway_ip, port = 443)
         client1 = controller.get_client()
         bk.safe_print('pinging handler')
         client1.ping()
