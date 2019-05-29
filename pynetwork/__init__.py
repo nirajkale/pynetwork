@@ -1,6 +1,6 @@
 from .Gateway import *
 from .Controller import *
-import pynetwork.backend2 as backend
+from pynetwork.backend2 import  *
 
 if __name__ == '__main__':
     pass

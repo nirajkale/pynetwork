@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pynetwork",
-    version="2.1.1",
+    version="2.2",
     author="Niraj S. Kale",
     author_email="nirajkale157@outlook.com",
     description="package to manage connection swarms for your network workloads",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/nirajkale/pynet",
+    url="https://github.com/nirajkale/pynetwork",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -2,10 +2,10 @@ import inspect
 
 if __package__:
     from .Handshakes import *
-    import pynetwork.backend2 as bk
+    from pynetwork.backend2 import *
 else:
     from Handshakes import *
-    import backend2 as bk
+    from backend2 import *
 
 
 def stream_from_subroutine(socket,name,function, arguments, kwargs):
@@ -14,38 +14,39 @@ def stream_from_subroutine(socket,name,function, arguments, kwargs):
         try:
             ident, buffer = next(generator)
             while buffer!=None and ident>=0:
-                payload = bk.long_to_bytes(ident) + buffer
-                bk.send_raw_bytes(socket, payload)
-                bk.receive_ack(socket)
+                payload = to_bytes(DataType.long, ident) + buffer
+                send_raw_bytes(socket,payload)
+                receive_signal(socket,expected_signal= Signal.ack)
                 ident, buffer = next(generator)
-            bk.send_eos(socket)
+            send_signal(socket, Signal.eos)
         except StopIteration as e_si:
-            bk.safe_print('StopIteration from subroutine')
-            bk.send_eos(socket)
-        except bk.RemoteException as re:
-            bk.safe_print('Streaming aborted by client')
+            safe_print('StopIteration from subroutine')
+            send_signal(socket, Signal.eos)
+        except RemoteException as re:
+            safe_print('Streaming aborted by client')
+            return
+        except SignallingError as se:
+            safe_print(se)
             return
         except Exception as e_gen:
-            bk.safe_print('Error in subroutine execution')
-            bk.send_header(socket, Response(False, str(e_gen)))
+            safe_print('Error in subroutine execution')
+            send_header(socket, Response(False, str(e_gen)))
     except TypeError as e_fun:
-        bk.send_header(socket, Response(False, 'Argument mismatch while calling the subroutine'))
+        send_header(socket, Response(False, 'Argument mismatch while calling the subroutine'))
     except Exception as e:
-        bk.safe_print('Error in stream_data_from_subroutine')
+        safe_print('Error in stream_data_from_subroutine')
         raise e
 
 def batch_from_subroutine(socket,name,function, arguments, kwargs):
-    try:  
-##        bk.safe_print('calling function', name)
-##        bk.safe_print('arguments:',arguments, kwargs)
+    try:
         payload = function(*arguments, **kwargs)
-        bk.send_raw_bytes(socket, payload)
-        bk.receive_ack(socket)
+        send_raw_bytes(socket, payload)
+        receive_signal(socket,expected_signal= Signal.ack)
     except TypeError as e_fun:
-        bk.send_header(socket, Response(False, 'Argument mismatch while calling the subroutine'))
+        send_header(socket, Response(False, 'Argument mismatch while calling the subroutine'))
     except Exception as e:
-        bk.safe_print('Error in subroutine execution/transmission')
-        bk.send_header(socket, Response(False, str(e)))
+        safe_print('Error in subroutine execution/transmission')
+        send_header(socket, Response(False, str(e)))
         raise e
 
 def receive_subroutine_stream(socket, subroutine_name, callback, eos_callback):
@@ -54,26 +55,25 @@ def receive_subroutine_stream(socket, subroutine_name, callback, eos_callback):
     '''
     try:
         result = None
-        data_type, payload = bk.receive_data(socket)
-        while data_type==1:
+        signal, payload = receive_data_v2(socket)
+        while signal == Signal.data:
             if result!= None and result.__class__ is bool and result==False:
-                bk.safe_print('Stream reception abort requested by callback')
-                bk.send_header(socket, Response(False, 'Subroutine stream reception aborted by client'))
+                safe_print('Stream reception abort requested by callback')
+                send_header(socket, Response(False, 'Subroutine stream reception aborted by client'))
                 return
-            bk.send_ack(socket)
-            ident, buffer = bk.bytes_to_int(payload[:8]), payload[8:]
+            send_signal(socket,Signal.ack)
+            ident, buffer = from_bytes(DataType.long, payload[:8]), payload[8:]
             result = callback(subroutine_name, ident, buffer)
-            data_type, payload = bk.receive_data(socket)
-        if data_type == 3: #eos
-            bk.safe_print('stream eos reached, raising eos_callback')
+            signal, payload = receive_data_v2(socket)
+        if signal == Signal.eos: #eos
+            safe_print('stream eos reached, raising eos_callback')
             if eos_callback !=None:
                 eos_callback(subroutine_name)
             return
-        elif data_type == 2:# header in the middle of the stream means an error in generator execution
-            if payload.result: #payload is already converted to an obj by backend
-                warnings.warn('Stream interrupted by message from gateway:'+resp.message)
+        else:# header in the middle of the stream means an error in generator execution
+            raise SignallingError(expected_signal= Signal.eos, acutal_signal= signal)
     except Exception as e:
-        bk.safe_print('Error in receive_subroutine_stream')
+        safe_print('Error in receive_subroutine_stream')
         raise e
 
 def receive_subroutine_batch(socket):
@@ -81,48 +81,42 @@ def receive_subroutine_batch(socket):
     transmitter & receiver
     '''
     try:
-        data_type, payload = bk.receive_data(socket)
-        if data_type==1:
-            bk.send_ack(socket)
+        signal, payload = receive_data_v2(socket)
+        if signal == Signal.data:
+            send_signal(socket, Signal.ack)
             return payload
-        if data_type == 3: #eos
-            raise Exception('Client was not expecting a EOS from batch subroutine')
-        elif data_type == 2:# header in the middle of the stream means an error in generator execution
-            if payload.result: #payload is already converted to an obj by backend
-                warnings.warn('Stream interrupted by message from gateway:'+resp.message)
+        else:
+            raise SignallingError(expected_signal= Signal.data, acutal_signal= signal)
     except Exception as e:
-        bk.safe_print('Error in receive_subroutine_batch')
+        safe_print('Error in receive_subroutine_batch')
         raise e
 
 def forward_batch_to_subroutine(socket, function, arguments, kwargs):
     try:
-        data_type, payload = bk.receive_data(socket)
-        if data_type==1:
+        signal, payload = receive_data_v2(socket)
+        if signal == Signal.data:
             if payload != b'':
                 kwargs['buffer'] = payload
             result = function(*arguments, **kwargs)
+            safe_print('result:',result)
             if result != None and result.__class__ is int:
-                bk.send_int(socket, result)
+                send_custom_data(socket, DataType.int, result)
             else:
-                bk.send_int(socket, 0)
-        if data_type == 3: #eos
-            raise Exception('Server was not expecting a EOS while sending data to subroutine.')
-        elif data_type == 2:# header in the middle of the stream means an error in generator execution
-            if payload.result: #payload is already converted to an obj by backend
-                warnings.warn('Stream interrupted by message from client:'+resp.message)
+                send_custom_data(socket, DataType.int, 0)
+        else:
+            raise SignallingError(expected_signal= Signal.data, acutal_signal= signal)
     except TypeError as e_fun:
-        bk.send_header(socket, Response(False, 'Send:Argument mismatch while calling the subroutine'))
+        send_header(socket, Response(False, 'Send:Argument mismatch while calling the subroutine'))
     except Exception as e:
-        bk.safe_print('Error in forward_batch_to_subroutine')
+        safe_print('Error in forward_batch_to_subroutine')
         raise e
 
 
 def send_batch_to_subroutine(socket, buffer):
-
     if not buffer:
         buffer = b''
-    bk.send_raw_bytes(socket, buffer)
-    return bk.receive_int(socket)
+    send_raw_bytes(socket, buffer)
+    return receive_custom_data(socket,DataType.int)
     
 
     

@@ -7,22 +7,59 @@ import time
 import os
 from tqdm import tqdm,tqdm_notebook
 from threading import Lock
+import struct
+from enum import Enum
+import warnings
 
 if __package__:
     from .Handshakes import *
 else:
     from Handshakes import *
 
-
 extract_re = lambda r,s: re.search(r,s).group()
 
-str_to_bytes = lambda message: message.encode(encoding = 'utf-8')
-
-bytes_to_str = lambda _bytes: _bytes.decode("utf-8")
-
-default_chunk_size = 8* 1024
+default_chunk_size: int = 8* 1024
 
 print_lock = Lock()
+
+class DataType(Enum):
+
+    char = 'c'
+    bool = '?'
+    int = 'i'
+    int_unsigned = 'I'
+    long = 'q'
+    long_unsigned = 'Q'
+    float = 'f'
+    double = 'd'
+    string = 's'
+    list = 'list'
+    tuple = 'tuple'
+    dict = 'dict'
+    none = 'none'
+
+class Signal(Enum):
+
+    ack = 0
+    data =1
+    header = 2
+    eos = 3
+    
+def to_bytes(data_type:DataType, value):
+    if data_type == DataType.string:
+        return value.encode(encoding = 'utf-8')
+    elif data_type in (DataType.list, DataType.tuple, DataType.dict, DataType.none):
+        return json.dumps(value).encode(encoding = 'utf-8')
+    return struct.pack(data_type.value, value)
+
+def from_bytes(data_type:DataType, bytes):
+    if data_type == DataType.string:
+        return bytes.decode("utf-8")
+    elif data_type == DataType.tuple:
+        return tuple(json.loads(bytes.decode("utf-8")))
+    elif data_type in (DataType.list, DataType.dict, DataType.none): 
+        return json.loads(bytes.decode("utf-8"))
+    return struct.unpack(data_type.value, bytes)[0]
 
 def safe_print(*args, **kwargs):
     with print_lock:
@@ -33,15 +70,6 @@ def register_class_for_serialization(_type):
     class_name =  name[name.index('.')+1:name.rindex('\'')]
     if class_name not in globals():
         globals()[class_name] = _type
-
-def int_to_bytes(i: int, header_size:int = 4) -> bytes:
-    return i.to_bytes(header_size, byteorder='big', signed=False)
-
-def long_to_bytes(i: int, header_size:int = 8) -> bytes:
-    return i.to_bytes(header_size, byteorder='big', signed=False)
-
-def bytes_to_int(b: bytes) -> int:
-    return int.from_bytes(b, byteorder='big', signed=False)
 
 
 def serialize_obj(obj):
@@ -59,132 +87,111 @@ def de_serialize_obj(string):
     obj.__dict__ = json.loads(string[string.index(':')+1:])
     return obj
 
-def receive_data(client, expect_disposal = False, chunk_size = default_chunk_size):
+def receive_data_v2(client, expect_disposal = False, chunk_size = default_chunk_size):
     '''
-        returns (type , buffer)
+        returns (signal, buffer/header/None)
     '''
     #messgage format: 4 bytes of packet type + 8 byte of payload size + payload
-    data_type = bytes_to_int(client.recv(4))
-    if data_type == (0, 3):
-        return (data_type, None) #for ack & eos
-    elif data_type in (1,2):
-        payload_size = bytes_to_int(client.recv(8))
+    signal = Signal( from_bytes(DataType.int, client.recv(4)))
+    if signal in ( Signal.ack, Signal.eos): #for ack & eos
+        return (signal, None)
+    elif signal in (Signal.data, Signal.header):
+        payload_size = from_bytes(DataType.long_unsigned, client.recv(8))
         buffer = b''
         while payload_size >0:
             payload  = client.recv(min(chunk_size, payload_size))
             buffer += payload
             payload_size -= len(payload)
-        if data_type ==2:
-            header = de_serialize_obj( bytes_to_str(buffer))
+        if signal == Signal.header:
+            header = de_serialize_obj( from_bytes(DataType.string, buffer))
             if header.__class__ is Response and (not header.result):
                 #intercept & raise Exception
                 raise RemoteException('Backend:'+header.message)
             elif header.__class__ is DisposeRequest and (not expect_disposal):
                 raise Exception('Received unexpected disposal requet')
-            return (data_type, header)
-        return (data_type, buffer)
+            return (signal, header)
+        return (signal, buffer)
     else:
-        return (data_type, None)
+        return (signal, None)
 
-def send_data(client,
-              buffer,
-              data_type = 1,
-              chunk_size = default_chunk_size):
-    payload_size = len(buffer)
-    packet = int_to_bytes(data_type) + long_to_bytes(payload_size)
-    if payload_size <= chunk_size:
-        packet += buffer
-        client.send(packet)
+def send_data_v2(client,signal:Signal,buffer=None, chunk_size = default_chunk_size):
+    if buffer == None:
+        client.send( to_bytes(DataType.int, signal.value))
     else:
-        packet += buffer[:chunk_size]
-        start_index = chunk_size
-        while packet:
+        payload_size = len(buffer)
+        packet = to_bytes(data_type= DataType.int, value= signal.value) \
+                 + to_bytes(data_type= DataType.long_unsigned, value= payload_size)
+        if payload_size <= chunk_size:
+            packet += buffer
             client.send(packet)
-            packet = buffer[start_index: start_index+ chunk_size]
-            start_index += chunk_size
+        else:
+            packet += buffer[:chunk_size]
+            start_index = chunk_size
+            while packet:
+                client.send(packet)
+                packet = buffer[start_index: start_index+ chunk_size]
+                start_index += chunk_size
+                
+def send_signal(client, signal:Signal):
+    send_data_v2(client, signal, None)
 
-def send_ack(client):
-    client.send(int_to_bytes(0))
+def receive_signal(client, expected_signal:Signal):
+    signal, _ =  receive_data_v2(client)
+    if signal == expected_signal:
+        return
+    raise SignallingError(expected_signal= expected_signal, acutal_signal= signal)
 
-def receive_ack(client):
-    data_type,_ = receive_data(client)
-    if data_type !=0 :
-        raise Exception('NaN ack')    
+def send_raw_bytes(client, buffer, chunk_size = default_chunk_size):
+    send_data_v2(client, Signal.data , buffer=buffer, chunk_size= chunk_size)
 
-def send_eos(client):
-    client.send(int_to_bytes(3))
+def receive_raw_bytes(client, chunk_size = default_chunk_size):
+    signal, buffer = receive_data_v2(client, chunk_size= chunk_size)
+    if signal == Signal.data:
+        return buffer
+    raise SignallingError(expected_signal= Signal.data, acutal_signal=signal)
 
-def receive_eos(client):
-    data_type,_ = receive_data(client)
-    if data_type !=3 :
-        raise Exception('NaN eos') 
+def send_custom_data(client, data_type:DataType, data):
+    buffer = to_bytes(data_type, data)
+    send_raw_bytes(client, buffer)
 
-def send_raw_bytes(client,buffer):
-    send_data(client,
-              buffer,
-              data_type = 1)
-
-def send_str(client, string):
-    buffer = str_to_bytes(string)
-    send_data(client,
-              buffer = buffer,
-              data_type = 1)
-
-def receive_str(client):
-    packet_type, buffer =receive_data(client)
-    if packet_type==1:
-        #print(bytes_to_str(buffer))
-        return bytes_to_str(buffer)
-
-def send_int(client, num):
-    buffer = int_to_bytes(num)
-    send_data(client,
-              buffer = buffer,
-              data_type = 1)
-
-def receive_int(client):
-    packet_type, buffer =receive_data(client)
-    if packet_type==1:
-        #print(bytes_to_str(buffer))
-        return bytes_to_int(buffer)
+def receive_custom_data(client, data_type:DataType):
+    buffer = receive_raw_bytes(client)
+    return from_bytes(data_type, buffer)
 
 def send_header(client, header):
     obj_str= serialize_obj(header)
-    buffer = str_to_bytes(obj_str)
-    send_data(client,
-              data_type = 2,
-              buffer = buffer)
+    buffer = to_bytes(DataType.string, obj_str)
+    send_data_v2(client, Signal.header, buffer)
 
 def receive_header(client):
-    data_type, obj= receive_data(client, expect_disposal = True)
-    if data_type ==2:
-        return obj
-    raise Exception('Out of Sync response, Was expecting a header but a got a data_type:'+str(data_type))
-
+    signal, header = receive_data_v2(client, expect_disposal=True)
+    if signal == Signal.header:
+        return header
+    raise SignallingError(expected_signal= Signal.header, acutal_signal= signal)
 
 def send_file(client, filepath:str, chunk_size:int = default_chunk_size):
     safe_print('\tSending file:',filepath)
     with open(filepath, 'rb') as f:
         buffer = f.read(chunk_size)
         while buffer:
-            send_data(client,buffer, chunk_size = chunk_size)
+            send_raw_bytes(client, buffer, chunk_size= chunk_size)
             buffer = f.read(chunk_size)
-        send_eos(client)
+        send_signal(client, signal=Signal.eos)
 
 def receive_file(client, filepath:str, size:int,chunk_size:int = default_chunk_size, verbose:bool=True):
     safe_print('\tReceiving file:',filepath, 'with size:',str(size/1024))
     with tqdm(total = size/1024, disable = (not verbose), unit ='KB') as pbar:
         with open(filepath, 'wb') as f:
-            data_type, buffer = receive_data(client, chunk_size = chunk_size)
+            signal, buffer = receive_data_v2(client, chunk_size= chunk_size)
             if buffer:
                 pbar.update(len(buffer)/1024.0)
-            while data_type==1:
+            while signal == Signal.data:
                 f.write(buffer)
-                data_type, buffer = receive_data(client, chunk_size = chunk_size)
+                signal, buffer = receive_data_v2(client, chunk_size= chunk_size)
                 if buffer:
                     pbar.update(len(buffer)/1024.0)
-            if data_type !=3: #end of stream
-                raise Exception('Invalid data type received in file stream')
+            if signal != Signal.eos: #end of stream
+                raise SignallingError(expected_signal= Signal.eos, acutal_signal= signal)
 
 def send_files(client, files):
     #send verified file list back to the client
@@ -192,14 +199,14 @@ def send_files(client, files):
     filenames = [ (os.path.basename(f),os.path.getsize(f)) for f in verfied_files]
     send_header(client, FilesResponse(True, '', filenames))
     if len(filenames)==0:
-        safe_print('No files selected for transmission')
+        warnings.warn('No files selected for transmission')
         return 0
     #wait for client to acknowlege this renewed file list
-    receive_ack(client)
+    receive_signal(client, expected_signal= Signal.ack)
     #now start sending files one by one
     for file in tqdm(verfied_files, desc = 'Sending Files'):
         send_file(client, filepath= file)
-        receive_ack(client)
+        receive_signal(client, expected_signal= Signal.ack)
     return len(filenames)
 
 def receive_files(client, base_dir, verbose = True):
@@ -208,11 +215,11 @@ def receive_files(client, base_dir, verbose = True):
         raise Exception('Out of sync header receied from file transmitter')
     #ack server for verified file list
     if len(header.files)>0:
-        send_ack(client)
+        send_signal(client, Signal.ack)
         for fname,size in tqdm(header.files, total= len(header.files),desc='Receiving Files'):
             filepath = os.path.join(base_dir, fname)
             receive_file(client=client, filepath= filepath, size= size, verbose= verbose)
-            send_ack(client)
+            send_signal(client, Signal.ack)
         return len(header.files)
     else:
         safe_print('No files selected for reception')
@@ -222,7 +229,6 @@ def get_socket():
     sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     return sock
-
 
 class Listener(threading.Thread):
 
@@ -261,13 +267,14 @@ class RemoteException(Exception):
     def __init__(self, message):
         super().__init__(message)
 
+class SignallingError(Exception):
 
-def callback(client):
-    send_int(client, 200)
+    def __init__(self, expected_signal:Signal, acutal_signal:Signal):
+        super().__init__('was expecting a signal -'+expected_signal.name+' but instead got -'+ acutal_signal.name)
 
 if __name__ == '__main__':
 
-    pass
+    safe_print('ready..')
         
         
         

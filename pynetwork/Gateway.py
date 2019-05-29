@@ -8,13 +8,14 @@ import warnings
 
 if __package__:
     import pynetwork.SubroutineStreamer as ss
-    import pynetwork.backend2 as bk
+    from pynetwork.backend2 import *
     from .Handshakes import *
     from .Subroutines import *
 else:
     import SubroutineStreamer as ss
     from Handshakes import *
     from Subroutines import *
+    from backend2 import *
 
 ''' server response codes:
 200: ok
@@ -45,9 +46,10 @@ class Gateway:
                 os.makedirs(self.download_dir)
 
     def start(self, blocking = False):
-        self.listener = bk.Listener(self.callback_listener , self.port)
+        self.listener = Listener(self.callback_listener , self.port)
         self.is_running = True
         self.listener.start()
+        safe_print('Gateway Started..')
         if blocking:
             self.listener.join()
 
@@ -57,17 +59,17 @@ class Gateway:
         for handler_id in self.handler_pool:
             self.handler_pool[ handler_id].request_closure()
         self.is_running = False
-        bk.safe_print('Gateway stopped')
+        safe_print('Gateway stopped')
 
     def callback_handler(self, handler_id, flag_gateway):
         del self.handler_pool[ handler_id]
         if not flag_gateway:
-            bk.safe_print('Gatway termination requested by a handler <- client')
+            safe_print('Gatway termination requested by a handler <- client')
             self.stop()
 
     def callback_listener(self, client):
         if len(self.handler_pool) >= self.max_poolsize:
-            bk.send_int(client, 503)
+            send_custom_data(client, DataType.int, 503)
             try_dispose_client( client)
             return
         handler = Handler(client, self.subroutines, self.callback_handler, self.download_dir)
@@ -109,18 +111,17 @@ class Handler(threading.Thread):
 
     def send_positive_resp(self, message = ''):
         resp = Response(result = True, message = message)
-        bk.send_header(self.client, resp)
+        send_header(self.client, resp)
 
     def send_negative_resp(self, message = ''):
         resp = Response(result = False, message = message)
-        bk.send_header(self.client, resp)
+        send_header(self.client, resp)
 
     def send_files_to_client(self, header):
         try:
-            bk.safe_print('inside:send_files_to_client', os.path.exists(header.folder))
             if len(header.files)> 0:
-                bk.safe_print('sending files to client from a list')
-                bk.send_files(self.client, header.files)
+                safe_print('sending files to client from a list')
+                send_files(self.client, header.files)
             elif header.folder !='':
                 if not os.path.exists(header.folder):
                     self.send_negative_resp('Selected directory does not exist on gateway')
@@ -128,10 +129,10 @@ class Handler(threading.Thread):
                 files = [os.path.join(header.folder, f) for f in os.listdir(header.folder)]
                 if header.regex!='':
                     files = [f for f in files if re.match(header.regex, f)]
-                bk.safe_print('sending files to client from a folder:',files)                    
-                bk.send_files(self.client, files)
+                safe_print('sending files to client from a folder:',files)
+                send_files(self.client, files)
         except Exception as e:
-            bk.safe_print('Error in send_files_to_client')
+            safe_print('Error in send_files_to_client')
             raise e
 
     def get_files_from_client(self, header):
@@ -141,10 +142,10 @@ class Handler(threading.Thread):
                 basedir = os.path.join(self.download_dir, header.dirname)
             if not os.path.exists(basedir):
                 os.makedirs(basedir)
-            bk.send_ack(self.client)
-            bk.receive_files(self.client, basedir)
+            send_signal( self.client, Signal.ack)
+            receive_files(self.client, basedir)
         except Exception as e:
-            bk.safe_print('Error in get_files_from_client')
+            safe_print('Error in get_files_from_client')
             raise e
 
     def batch_data_from_subroutine(self, header):
@@ -160,7 +161,7 @@ class Handler(threading.Thread):
         try:
             function = self.subroutines[header.name]
             if not inspect.isgeneratorfunction( function):
-                bk.send_header(self.client, Response(False, 'Non-generator subroutines cannot be used for streaming data'))
+                send_header(self.client, Response(False, 'Non-generator subroutines cannot be used for streaming data'))
                 return
             self.send_positive_resp(message = header.name)
             ss.stream_from_subroutine(socket =self.client,\
@@ -169,29 +170,30 @@ class Handler(threading.Thread):
                                      arguments = header.arguments,\
                                      kwargs = header.kwargs)
         except Exception as e:
-            bk.safe_print('Error in stream_data_from_subroutine')
+            safe_print('Error in stream_data_from_subroutine')
             raise e
         
     def send_data_to_subroutine(self,header):
         try:
             self.send_positive_resp(message = header.name)
+            safe_print('sent positive resp:',header.name)
             function = self.subroutines[header.name]
             ss.forward_batch_to_subroutine(socket = self.client,\
                                            function = function, \
                                            arguments = header.arguments,\
                                            kwargs = header.kwargs)
         except Exception as e:
-            bk.safe_print('Error in send_data_to_subroutine')
+            safe_print('Error in send_data_to_subroutine')
             raise e            
 
     def run(self):
         try:
             #first thing that a Handler oughtta do is acknowledge client
-            bk.safe_print('handler with id ',self.id,' has started')
-            bk.send_int(self.client, 200)
+            safe_print('handler with id ',self.id,' has started')
+            send_custom_data(self.client, DataType.int, 200)
             while not self.exitflag:
-                header = bk.receive_header(self.client)
-                #bk.safe_print('request to ',self.id,' ',str(header))
+                header = receive_header(self.client)
+                #safe_print('request to ',self.id,' ',str(header))
                 if header.__class__ is SendFiles:
                     self.send_files_to_client(header)
                     #backend has its own implementation of resp
@@ -200,7 +202,7 @@ class Handler(threading.Thread):
                     #backend has its own implementation of resp
                 elif header.__class__ is ExecSubroutine:
                     if header.name not in self.subroutines:
-                        bk.send_header(self.client, Response(False, 'Subroutine with given identity does not exist.')) 
+                        send_header(self.client, Response(False, 'Subroutine with given identity does not exist.'))
                     elif header.direction == 'get' and header.mode =='stream':
                         self.stream_data_from_subroutine(header)
                     elif header.direction == 'get' and header.mode =='batch':
@@ -208,9 +210,9 @@ class Handler(threading.Thread):
                     elif header.direction == 'set':
                         self.send_data_to_subroutine(header)
                     else:
-                        bk.send_header(self.client, Response(False, 'Invalid Subroutine configuration provided to gateway.')) 
+                        send_header(self.client, Response(False, 'Invalid Subroutine configuration provided to gateway.'))
                 elif header.__class__ is PingRequest:
-                    bk.safe_print('Ping request:',header.message)
+                    safe_print('Ping request:',header.message)
                     self.send_positive_resp(message = header.message)
                 elif header.__class__ is DisposeRequest:
                     if header.mode in (0,1):
@@ -218,20 +220,20 @@ class Handler(threading.Thread):
                         self.flag_gateway = not header.mode == 1
                         break
                     else:
-                        bk.send_header(self.client, Response(False, 'Invalide Dispose mode'))    
+                        send_header(self.client, Response(False, 'Invalide Dispose mode'))
                 else:
-                    bk.safe_print('request to '+self.id+' Invalid header')
-                    bk.send_header(self.client, Response(False, 'Invalide Header'))
+                    safe_print('request to '+self.id+' Invalid header')
+                    send_header(self.client, Response(False, 'Invalide Header'))
         except Exception as e:
-            bk.safe_print('Error in handler ', str(e))
+            safe_print('Error in handler ', str(e))
         finally:
             try:
-                #bk.safe_print('disposeing handler socket')
+                #safe_print('disposeing handler socket')
                 try_dispose_client( self.client)
                 self.exit_callback(self.id, self.flag_gateway)
             except Exception as e1:
-                bk.safe_print('Error in gateway callback:',str(e1))
-        bk.safe_print('Handler with id',self.id,'closed')
+                safe_print('Error in gateway callback:',str(e1))
+        safe_print('Handler with id',self.id,'closed')
 
 
     def request_closure(self):
@@ -240,7 +242,7 @@ class Handler(threading.Thread):
             try:
                 self.client.close()
             except Exception as e:
-                bk.safe_print('Error in closure request ',str(e))
+                safe_print('Error in closure request ',str(e))
 
 
 

@@ -1,7 +1,7 @@
 if __package__:
-    import pynetwork.backend2 as bk
+    from pynetwork.backend2 import *
 else:
-    import backend2 as bk
+    from backend2 import *
 
 '''
 These are just sample subroutines for reference
@@ -13,11 +13,11 @@ def fetch_sensor_data(sensor_pin:int, norm_factor:int, **kwargs):
     for i in range(10):
         data = str.format('{0}:sample string val from pin {1} & facotr {2}',i,sensor_pin, norm_factor)
         print('sensor value of i:',i)        
-        yield (i,bk.str_to_bytes(data))
+        yield (i, to_bytes(DataType.string, data))
     yield (-1, None)
 
 def fetch_sensor_batch_data(str_input:str):
-    return bk.str_to_bytes('Fake str data: '+str_input)
+    return to_bytes(DataType.string, 'Fake str data: '+str_input)
 
 
 def set_io(pin:int, value:bool,**kwargs):
