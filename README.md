@@ -3,7 +3,13 @@
   
   ### Important Updates:
   
-  Due to some name conflict in pypi, i had to change the name of the library from "pynet" to "pynetwork"
+  1. Due to some name conflict in pypi, i had to change the name of the library from "pynet" to "pynetwork"
+  2. With version 2.3/2.2.1, below changes/updates are in place:
+      a. Signalling code in backend2 updated for optimization & readability
+      b. Now package can handle all the native python data types: int,bool, string,long, double, float, list, tuple, dictionary
+          & are now available to user through 'to_bytes' & 'from_bytes' functions in backend2
+      c. Better error reporting with new Enum Signals
+      d. 'With' keyword support for client
   
   ### Abstract
 
@@ -19,7 +25,7 @@
   
   I've added this package to pypi package index,so now you can install it using pip: <br/>
   
-  pip install pynetwork
+  pip install pynetwork==2.3
   
   ### Prelude
   
@@ -81,6 +87,11 @@
     client1.ping('Hello there..')
     #Once you are done, you can either close the dedicated handler for your client of the gateway itself.
     client1.close_handler() #/ or client1.close_gateway() at which the gw.start(blocking = True) will stop blocking
+    
+    #or with version 2.2.1 & above you can also use with keyword
+    with controller.get_client() as client1:
+      client1.ping('Hello there..')
+      #once done, your exit from 'with' block closes handler (gateway remains open)
   ``` 
   #### Handler <--> Client
   
@@ -192,8 +203,7 @@
   
   #### On Gateway side
   ```python
-import pynetwork as pynet
-import pynetwork.backend2 as bk
+from pynetwork import *
 import struct
 import shutil
 import os
@@ -205,7 +215,7 @@ def get_usage_percentage(request_id:int, **kwargs):
     total, used, free = shutil.disk_usage("\\")
     usage_per = used/ total
     bk.safe_print('usage', usage_per) # safe_print make sure that output from multiple client/handler threads to console do not mix-up
-    b = struct.pack('f', usage_per)    #convert the data bytes that needs to be sent back
+    b= to_bytes(DataType.double, usage)    #now backend2 supports all the data types
     return b
 
 def remove_logs(dirpath:str, **kwargs):
@@ -227,8 +237,7 @@ if __name__ == '__main__':
   #### On Controller side
   
   ```python
-import pynetwork as pynet
-import pynetwork.backend2 as bk
+from pynetwork import *
 import struct
 
 if __name__ == '__main__':
@@ -237,7 +246,7 @@ if __name__ == '__main__':
     client1 = controller.get_client()
     client1.ping('Hello there..')
     b = client1.get_subroutine_batch(name ='mount_usage',arguments=[123,])
-    usage = struct.unpack('f', b)[0]
+    usage = from_bytes(DataType.double, b)
     bk.safe_print('mount usage:', usage)
     if usage > 0.2:
         bk.safe_print('downloading files..')
@@ -255,16 +264,37 @@ if __name__ == '__main__':
   
   #### Few things to be considered while writing a subroutine for receiving batch data (Handler -> Client):
   
-  a. Function can have *arguments* & *kwargs* as an input, here arguments represent positional arguments (Against the usual python            convetion)
-     *sorry for this mess, i will change the name in next release*
-  b. The function need to return the data in byte format. So function can either one of the methoeds available in backed to convert int,
-      str to byes (I would add support float soon, but meanwhile you can use struct package). Furthermore, if you want to return a 
-      custom class then you use your own custom encode to serialize object to JSON string & then using backed to convert this string to
-      bytes, then on the controller side do the opposite.
+  a. Function can have *arguments* & *kwargs* as an input, here arguments represent positional arguments
+  b. The function need to return the data in byte format. To do so, you can backend methods to convert your data to bytes & then convert 
+     it back on client side. 
+  **byte data conversion using backend2
+  ```python
+  
+    _double = 3.141521
+    _double_bytes = to_bytes(DataType.double, _double)
+    safe_print(from_bytes(DataType.double, _double_bytes))
+
+    _bool = True
+    _bool_bytes = to_bytes(DataType.bool, _bool)
+    safe_print(from_bytes(DataType.bool, _bool_bytes))
+
+    #simalarly you convert back & forth any python data structure
+
+    _list = [1,2,4,4,54,55]
+    _list_bytes = to_bytes(DataType.list, _list)
+    safe_print(from_bytes(DataType.list, _list_bytes))
+
+    _tuple = (23,55,66,77)
+    _tuple_bytes = to_bytes(DataType.tuple, _tuple)
+    safe_print(from_bytes(DataType.tuple, _tuple_bytes))
+
+    _dict = {'a':123, 'b':4534}
+    _dict_bytes = to_bytes(DataType.tuple, _dict)
+    safe_print(from_bytes(DataType.tuple, _dict_bytes))
+  ```
       **If you want to use the object serialization which available in backend then you can add your class to the "Handshakes file" to 
       use in-built serializtion, but it is important that you have primitive data-types in your class & have default values assigned to 
       all the input parameters in __init__ method of your class.**
-     *I will make some change in serialization to give more freedom for class defination in next release*
      
   #### Few things to be considered while writing a subroutine for transmitting batch data (Client -> Handler):
   
@@ -275,5 +305,6 @@ if __name__ == '__main__':
 ## Tutorial 2: Raspberry-Pi control over wifi (uses both streaming & batch data transfer)
 
   *Work in progress.. Will post in 1-2 days!*
+  *This tutorial got delayed due to major changes in backend2*
 
 
