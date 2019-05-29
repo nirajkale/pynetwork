@@ -1,8 +1,8 @@
 Metadata-Version: 2.1
 Name: pynetwork
-Version: 2.1.1
+Version: 2.2
 Summary: package to manage connection swarms for your network workloads
-Home-page: https://github.com/nirajkale/pynet
+Home-page: https://github.com/nirajkale/pynetwork
 Author: Niraj S. Kale
 Author-email: nirajkale157@outlook.com
 License: UNKNOWN
@@ -65,6 +65,31 @@ Description:   # pynetwork
           
           <img src="https://user-images.githubusercontent.com/40765055/58163266-53432900-7ca1-11e9-8c94-928eb364faf7.jpg" /></p>
         
+          **Using Gateway on Host device**
+           ```python    
+            gw = pynet.Gateway(port = 1857) # Define port on which gateway will listen to controller requests.
+            #Then register your subroutines (Either generators/ non-generators)
+            gw.add_subroutine('mount_usage', get_usage_percentage) 
+            gw.add_subroutine('remove_logs', remove_logs)
+            #Its not necessary to add your subroutines before the gateway starts listening..
+            gw.start(blocking = True) #start listening to controller
+            #When blocking is True, then gateway will block the main thread (Similar to App.mainloop() in wxpython), untill it is closed 
+            #by controller, If you are sure that this main thread wont run to an end, then you can set it too false or add your custom
+            #logic to keep this main thread alive.
+          ``` 
+        
+          **Using Gateway on Client device**
+           ```python    
+            controller = pynet.Controller(gateway_ip = 'GATEWAY_IP', port = 1857, download_dir = 'mydir', verbose = True) 
+            #create a controller
+            client1 = controller.get_client()
+            #When you call get_client, the controller requests for a dedicated handler with the Gateway, if the gateway 'Handler pool'
+            #is not full then you'll get a client instance else controller will raise an error for overflowing the pool.
+            #Once connected, do your stuff..
+            client1.ping('Hello there..')
+            #Once you are done, you can either close the dedicated handler for your client of the gateway itself.
+            client1.close_handler() #/ or client1.close_gateway() at which the gw.start(blocking = True) will stop blocking
+          ``` 
           #### Handler <--> Client
           
           An individual pair of handler-client offer various options of data transfers:
