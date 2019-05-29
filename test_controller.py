@@ -2,23 +2,14 @@ from pynetwork import *
 
 if __name__ == '__main__':
 
-    try:
-
-##        safe_print('closing gateway..')
-##        client1.close_gateway()
-        pass 
-    except Exception as e:
-        safe_print('Error in client main')
-        safe_print(e)
-
-    gateway_ip = '' #package will automatically replace '' with localhost for windows
+    gateway_ip = '192.168.0.107' #package will automatically replace '' with localhost for windows
     controller = Controller(gateway_ip = gateway_ip, port = 1857)
     with controller.get_client() as client1:
         safe_print('pinging handler')
         client1.ping()
-        d = r'C:\Users\703235761\Documents\Approvals'
+        d = r'D:\logs'
         safe_print('\n\nDownloading files form gateway..')
-        client1.get_files_from_gateway(folder = d)
+        client1.get_files_from_gateway(folder = '/home/niraj/Pictures')
 
         safe_print('\n\nUploading files to gateway..')
         client1.send_files_to_gateway(dirname='29_May', files = [os.path.join(d,f) for f in os.listdir(d)])
