@@ -1,4 +1,4 @@
-  # pynetwork
+  # pynetwork 2.3
   ##  High performance socket swarms for network workloads
   
   ### Important Updates:
