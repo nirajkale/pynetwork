@@ -18,7 +18,7 @@ else:
 
 extract_re = lambda r,s: re.search(r,s).group()
 
-default_chunk_size: int = 8* 1024
+default_chunk_size = 16* 1024
 
 print_lock = Lock()
 
