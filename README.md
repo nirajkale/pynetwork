@@ -214,7 +214,7 @@ def get_usage_percentage(request_id:int, **kwargs):
     '''
     total, used, free = shutil.disk_usage("\\")
     usage_per = used/ total
-    bk.safe_print('usage', usage_per) # safe_print make sure that output from multiple client/handler threads to console do not mix-up
+    safe_print('usage', usage_per) # safe_print make sure that output from multiple client/handler threads to console do not mix-up
     b= to_bytes(DataType.double, usage)    #now backend2 supports all the data types
     return b
 
@@ -222,12 +222,12 @@ def remove_logs(dirpath:str, **kwargs):
     files = [os.path.join(dirpath,f) for f in os.listdir(dirpath)]
     for f in files: #iterate over files delete each one
         os.remove(f)
-    bk.safe_print(len(files),' files deleted')
+    safe_print(len(files),' files deleted')
     return bk.int_to_bytes(len(files)) 
 
 if __name__ == '__main__':
 
-    gw = pynet.Gateway(1857) #start gateway at port 1857
+    gw = Gateway(1857) #start gateway at port 1857
     gw.add_subroutine('mount_usage', get_usage_percentage)
     gw.add_subroutine('remove_logs', remove_logs)
     #add above two subroutines with a key, that client can pass to request execution
@@ -242,18 +242,18 @@ import struct
 
 if __name__ == '__main__':
 
-    controller = pynet.Controller(gateway_ip = '', port = 1857, download_dir = 'mydir', verbose = True) 
+    controller = Controller(gateway_ip = '', port = 1857, download_dir = 'mydir', verbose = True) 
     client1 = controller.get_client()
     client1.ping('Hello there..')
     b = client1.get_subroutine_batch(name ='mount_usage',arguments=[123,])
     usage = from_bytes(DataType.double, b)
-    bk.safe_print('mount usage:', usage)
+    safe_print('mount usage:', usage)
     if usage > 0.2:
-        bk.safe_print('downloading files..')
+        safe_print('downloading files..')
         client1.get_files_from_gateway(folder = 'D:\logs', regex = '.+RFIN703235761L') #using regex, u can filter files within a folder
         #in this case, we are only downloading log file belonging to tensorflow as a test
         count_bytes = client1.get_subroutine_batch(name ='remove_logs',arguments=['D:\logs',])
-        bk.safe_print(bk.bytes_to_int(count_bytes),' files deleted') 
+        safe_print(bk.bytes_to_int(count_bytes),' files deleted') 
     else:
         pass
     client1.close_handler() #close handler so the handler pool at gateway will remain empty for others
