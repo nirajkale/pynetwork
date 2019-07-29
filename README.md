@@ -10,6 +10,10 @@
           & are now available to user through 'to_bytes' & 'from_bytes' functions in backend2
       c. Better error reporting with new Enum Signals
       d. 'With' keyword support for client
+      
+  ### Use cases:
+  - If you are looking for Raspberry pi projects based on pynetwork, head over to repo:
+    https://github.com/nirajkale/rc-net
   
   ### Abstract
 
