@@ -308,7 +308,14 @@ if __name__ == '__main__':
   
 ## Tutorial 2: Raspberry-Pi control over wifi (uses both streaming & batch data transfer)
 
-  *Work in progress.. Will post in 1-2 days!*
-  *This tutorial got delayed due to major changes in backend2*
+  I've built a seperate repository with code for pynetwork based for raspberry pi robot. Adding code & info about this use case on this thread would make it much more large & might make it look a little out of context, so i decided create a seperate repo.
+Do checkout https://github.com/nirajkale/rc-net
+
+## Tutorial 3: A robot being controlled by a neural network using pynetwork:
+
+WIP :)
+if anyone interested to collab, hit me up at nirajkale30@gmail.com
+
+Happy coding!!
 
 
